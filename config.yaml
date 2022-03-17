@@ -1,0 +1,14 @@
+train_config:
+  log_dir: logs
+  max_epochs: 300
+  check_val_every_n_epoch: 100
+  log_every_n_steps: 1
+  precision: 16
+
+  net_config:
+    classes: 3  # labels classes
+    batch_size: 1
+    learning_rate: 0.001
+    slice_window_roi: [ 192, 192, 64 ]
+    predict_root: './unet_log/predict'
+    data_dir: 'Datasets/Aneurysm/S/one'  # root dir
