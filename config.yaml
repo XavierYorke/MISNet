@@ -1,14 +1,16 @@
-train_config:
-  log_dir: logs
-  max_epochs: 300
-  check_val_every_n_epoch: 100
-  log_every_n_steps: 1
-  precision: 16
+name: R-UNet
 
-  net_config:
-    classes: 3  # labels classes
-    batch_size: 1
-    learning_rate: 0.001
-    slice_window_roi: [ 192, 192, 64 ]
-    predict_root: './unet_log/predict'
-    data_dir: 'Datasets/Aneurysm/S/one'  # root dir
+data_config:
+  dataset_dir: E:/GLX/Projects/Aneurysm/S/one
+
+train_config:
+  epochs: 300
+  batch_size: 6
+  output_dir: logs
+
+net_config:
+  classes: 2  # labels classes
+  learning_rate: 0.001
+  slice_window_roi: [ 192, 192, 64 ]
+
+seed: 1228
