@@ -28,7 +28,8 @@ class R_UNet(nn.Module):
             spatial_dims=3,
             in_channels=1,
             out_channels=2,
-            channels=(32, 64, 128, 256, 512),
+            # channels=(32, 64, 128, 256, 512),
+            channels=(4, 8, 16, 32, 64),
             strides=(2, 2, 2, 2),
             num_res_units=2,
             norm=Norm.INSTANCE,
@@ -41,3 +42,8 @@ class R_UNet(nn.Module):
 
     def forward(self, x):
         return self._model(x)
+
+
+if __name__ == '__main__':
+    model = R_UNet(1228)
+    print(model)

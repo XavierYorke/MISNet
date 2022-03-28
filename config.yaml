@@ -7,8 +7,8 @@ train_config:
   epochs: 100
   batch_size: 6
   output_dir: logs
-  num_workers: 4
-  buffer_size: 8
+  num_workers: 8
+  buffer_size: 12
 
 net_config:
   classes: 2

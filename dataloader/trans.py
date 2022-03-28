@@ -12,7 +12,7 @@ train_transforms = transforms.Compose([
                            method='symmetric'),
     transforms.RandCropByPosNegLabeld(keys=["image", "label"],
                                       label_key="label",
-                                      spatial_size=[96, 96, 96],
+                                      spatial_size=[64, 64, 64],
                                       num_samples=2, pos=10, neg=1),
     transforms.EnsureTyped(keys=["image", "label"])
 ])
@@ -29,7 +29,7 @@ val_transforms = transforms.Compose([
                            method='symmetric'),
     transforms.RandCropByPosNegLabeld(keys=["image", "label"],
                                       label_key="label",
-                                      spatial_size=[96, 96, 96],
+                                      spatial_size=[64, 64, 64],
                                       num_samples=2, pos=10, neg=1),
     transforms.EnsureTyped(keys=["image", "label"])
 ])

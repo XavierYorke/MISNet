@@ -7,8 +7,10 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelSummary, Model
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import os.path as osp
 from tools import TrainingModule
-from monai.data import Dataset, ThreadDataLoader, list_data_collate, DataLoader, CacheDataset
+from monai.data import Dataset, ThreadDataLoader, list_data_collate, DataLoader
 import torch
+import warnings
+warnings.filterwarnings('ignore')
 
 
 def main(epochs, batch_size, output_dir, num_workers, buffer_size):
@@ -18,15 +20,15 @@ def main(epochs, batch_size, output_dir, num_workers, buffer_size):
     lr_monitor = LearningRateMonitor(logging_interval='step')
     checkpoint_callback = ModelCheckpoint(
         monitor="val_mean_dice",
-        filename="{epoch:02d}-{dice:.4f}",
+        filename="{epoch:02d}-{val_mean_dice:.4f}",
         save_last=True,
         save_top_k=3,
         mode="max",
         save_on_train_epoch_end=True
     )
     early_stop_callback = EarlyStopping(
-        monitor='val_loss',
-        patience=10,
+        monitor='train_loss',
+        patience=20,
         mode='min'
     )
 
