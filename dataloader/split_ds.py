@@ -32,11 +32,11 @@ def split_ds(data_path, split):
             train_list.append((image, label))
         if i in val_index:
             val_list.append((image, label))
-    train_dict = [{'image': image, 'label': label}
-                  for image, label in train_list]
-    val_dict = [{'image': image, 'label': label} for image, label in val_list]
+    train_dic = [{'image': image, 'label': label} for image, label in train_list]
+    val_dic = [{'image': image, 'label': label} for image, label in val_list]
 
-    return train_dict[:60], val_dict[:10]
+    # return train_dic[:1], val_dic[:1]
+    return train_dic[:60], val_dic[:12]
 
 
 if __name__ == '__main__':
