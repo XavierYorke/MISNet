@@ -1,6 +1,6 @@
 import argparse
 import yaml
-from dataloader import split_ds, train_transforms, val_transforms
+from dataloader import split_ds, train_transforms, val_transforms, spleen_ds
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelSummary, ModelCheckpoint
@@ -34,6 +34,7 @@ def main(epochs, batch_size, output_dir, num_workers, buffer_size):
 
     # data
     train_dict, val_dict = split_ds(data_config['dataset_dir'], 0.8)
+    # train_dict, val_dict = spleen_ds(data_config['dataset_dir'], 0.8)
     train_transforms.set_random_state(seed)
     val_transforms.set_random_state(seed)
     train_ds = Dataset(train_dict, train_transforms)
@@ -54,6 +55,7 @@ def main(epochs, batch_size, output_dir, num_workers, buffer_size):
         num_sanity_val_steps=1,
         checkpoint_callback=True,
         check_val_every_n_epoch=1,
+        # auto_scale_batch_size=True,
         log_every_n_steps=1,
         callbacks=[lr_monitor, ModelSummary(max_depth=-1), checkpoint_callback, early_stop_callback]
     )

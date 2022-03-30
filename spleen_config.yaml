@@ -1,8 +1,7 @@
-name: R-UNet-0330
-#name: test
+name: Spleen
 
 data_config:
-  dataset_dir: E:/GLX/Datasets/Aneurysm/S/one
+  dataset_dir: E:/GLX/Datasets/Task09_Spleen/imagesTr
 
 train_config:
   epochs: 100
@@ -14,6 +13,6 @@ train_config:
 net_config:
   classes: 2
   learning_rate: 0.001
-  slice_window_roi: [64, 64, 64]
+  slice_window_roi: [192, 192, 64]
 
 seed: 1228

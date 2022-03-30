@@ -1,6 +1,6 @@
 import torch
 import pytorch_lightning as pl
-from model import R_UNet
+from model import R_UNet, ResUnet
 from monai.visualize.img2tensorboard import plot_2d_or_3d_image
 from monai.losses import DiceCELoss
 from monai.metrics import DiceMetric
@@ -9,6 +9,25 @@ from monai.optimizers import Novograd
 from monai.inferers import sliding_window_inference
 from monai.data import decollate_batch
 import numpy as np
+from medpy import metric
+
+
+def get_eval(y_hat, y):
+    """
+    precision：  预测正确的个数占总的正类预测个数的比例（从预测结果角度看，有多少预测是准确的）
+    recall：     确定了正类被预测为正类占所有标注的个数（从标注角度看，有多少被召回）
+    tnr：        真负类率(True Negative Rate)：所有真实负类中，模型预测正确分类的比例
+    """
+    y_hat[y_hat >= 0.5] = 1
+    y_hat[y_hat < 0.5] = 0
+    y[y >= 0.5] = 1
+    y[y < 0.5] = 0
+
+    precision = metric.precision(y_hat, y)
+    recall = metric.recall(y_hat, y)
+    tnr = metric.true_negative_rate(y_hat, y)
+
+    return precision, recall, tnr
 
 
 class TrainingModule(pl.LightningModule):
@@ -20,6 +39,7 @@ class TrainingModule(pl.LightningModule):
         self.roi_size = self.config['slice_window_roi']
         # self.reader = NibabelReader()
         self.model = R_UNet(config['seed'])
+        # self.model = ResUnet()
         self.loss_fn = DiceCELoss(to_onehot_y=True, sigmoid=True)
         self.post_pred = transforms.Compose([
             transforms.EnsureType(), transforms.Activations(sigmoid=True),
@@ -39,11 +59,15 @@ class TrainingModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         image, label = batch['image'], batch['label']
         result = self.model(image)
-        loss, dice = self.shared_step(y_hat=result, y=label, mode='train')
+        loss, dice, precision, recall, tnr = self.shared_step(y_hat=result, y=label, mode='train')
         # loss = self.loss_fn(result, label)
         # log打印的是均值，return的是每一次的
         self.log('train_loss', loss)
         self.log('train_dice', dice, prog_bar=True)
+        self.logger.experiment.add_scalars('train_eval', {'precision': precision,
+                                                          'recall': recall,
+                                                          'tnr': tnr},
+                                           global_step=self.current_epoch)
         self.log("lr", self.optimizers().param_groups[0]['lr'], prog_bar=True, logger=False)
         return {'loss': loss}
 
@@ -51,18 +75,22 @@ class TrainingModule(pl.LightningModule):
         images, labels = batch['image'], batch['label']
         sw_batch = 4
         result = sliding_window_inference(
-            images, self.roi_size, sw_batch, self.model, mode='gaussian'
+            images, self.roi_size, sw_batch, self.model, mode='gaussian', overlap=0.2
         )
         # loss = self.loss_fn(result, labels)
-        loss, dice = self.shared_step(y_hat=result, y=labels, mode='val')
+        loss, dice, precision, recall, tnr = self.shared_step(y_hat=result, y=labels, mode='val')
         # outputs_for_dice = [self.post_pred(i) for i in decollate_batch(result)]
         labels = [self.post_label(i) for i in decollate_batch(labels)]
         # self.dice_metric(y_pred=outputs_for_dice, y=labels)
         # self.dice_metric_class(y_pred=outputs_for_dice, y=labels)
         outputs = [self.draw(i) for i in decollate_batch(result)]
 
-        self.log('val_loss', loss)
-        self.log('val_dice', dice)
+        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_dice', dice, prog_bar=True)
+        self.logger.experiment.add_scalars('val_eval', {'precision': precision,
+                                                        'recall': recall,
+                                                        'tnr': tnr},
+                                           global_step=self.current_epoch)
 
         plot_2d_or_3d_image(tag="result", data=outputs, step=self.current_epoch, writer=self.logger.experiment,
                             frame_dim=-1)
@@ -101,8 +129,8 @@ class TrainingModule(pl.LightningModule):
         # dice_mertric.reset()
 
         losses, dice = self.shared_epoch_end(step_outputs, 'val_loss')
-        self.log('val_mean_loss', losses, prog_bar=True)
-        self.log('val_mean_dice', dice, prog_bar=True)
+        self.log('val_mean_loss', losses)
+        self.log('val_mean_dice', dice)
 
     def shared_epoch_end(self, outputs, loss_key):
         losses = []
@@ -126,6 +154,8 @@ class TrainingModule(pl.LightningModule):
     def shared_step(self, y_hat, y, mode):
         loss = self.loss_fn(y_hat, y)
 
+        precision, recall, tnr = get_eval(y_hat.cpu().detach().numpy(), y.cpu().detach().numpy())
+
         y_hat = [self.post_pred(it) for it in decollate_batch(y_hat)]
         y = decollate_batch(y)
 
@@ -137,7 +167,7 @@ class TrainingModule(pl.LightningModule):
         loss = torch.nan_to_num(loss)
 
         dice = torch.mean(dice, dim=0)
-        return loss, dice
+        return loss, dice, precision, recall, tnr
 
     def configure_optimizers(self):
         # scheduler 在鞍点的时候减少学习率
