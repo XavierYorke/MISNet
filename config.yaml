@@ -1,4 +1,5 @@
-name: R-UNet-0330
+name: R-UNet-0403
+#name: Spleen
 #name: test
 
 data_config:
@@ -8,12 +9,13 @@ train_config:
   epochs: 100
   batch_size: 6
   output_dir: logs
-  num_workers: 8
-  buffer_size: 12
+  num_workers: 4
+  buffer_size: 24
 
 net_config:
   classes: 2
   learning_rate: 0.001
   slice_window_roi: [64, 64, 64]
+  overlap: 0.2
 
 seed: 1228
